@@ -16,4 +16,8 @@ func Setup(engine *gin.Engine, taskHandler *handler.TaskHandler) {
 			tasks.DELETE("/:id", taskHandler.DeleteTask)
 		}
 	}
+
+	engine.GET("/health", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{"status": "ok"})
+	})
 }
