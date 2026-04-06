@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"time"
-	
+
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/model"
+	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/repository"
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/service"
 	"github.com/AhmedHossam777/task-orchestrator/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -50,19 +52,67 @@ func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
 			Payload: req.Payload,
 		},
 	)
-	
+
 	if err != nil {
 		response.Fail(
 			c, http.StatusInternalServerError, "CREATE_FAILED", err.Error(),
 		)
 		return
 	}
-	
+
 	response.Created(c, toTaskResponse(task))
 }
 
-func (h *TaskHandler) GetAllTasks() {
-	
+func (h *TaskHandler) GetAllTasks(c *gin.Context) {
+	tasks, err := h.taskService.ListTasks()
+	if err != nil {
+		response.Fail(c, http.StatusInternalServerError, "LIST_FAILED", err.Error())
+		return
+	}
+
+	tasksResponse := make([]TaskResponse, 0, len(tasks))
+	for _, t := range tasks {
+		tasksResponse = append(tasksResponse, toTaskResponse(t))
+	}
+
+	response.OK(c, tasksResponse)
+}
+
+func (h *TaskHandler) GetOneTask(c *gin.Context) {
+	id := c.Param("id")
+	task, err := h.taskService.GetTask(id)
+	if err != nil {
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			response.Fail(
+				c, http.StatusNotFound, "TASK_NOT_FOUND",
+				"no task found with the given ID",
+			)
+			return
+		}
+		response.Fail(c, http.StatusInternalServerError, "GET_FAILED", err.Error())
+		return
+	}
+
+	response.OK(c, toTaskResponse(task))
+}
+
+func (h *TaskHandler) DeleteTask(c *gin.Context) {
+	id := c.Param("id")
+	err := h.taskService.DeleteTask(id)
+	if err != nil {
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			response.Fail(
+				c, http.StatusNotFound, "TASK_NOT_FOUND",
+				"no task found with the given ID",
+			)
+			return
+		}
+		response.Fail(c, http.StatusInternalServerError, "DELETE_FAILED", err.Error())
+		return
+	}
+
+	response.OK(c, "Task deleted successfully")
+
 }
 
 func toTaskResponse(t *model.Task) TaskResponse {
