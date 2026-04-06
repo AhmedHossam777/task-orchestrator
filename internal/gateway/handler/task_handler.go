@@ -33,7 +33,7 @@ type TaskResponse struct {
 	CompletedAt *time.Time     `json:"completed_at,omitempty"`
 }
 
-func newTaskHandler(svc service.TaskService) *TaskHandler {
+func NewTaskHandler(svc service.TaskService) *TaskHandler {
 	return &TaskHandler{
 		taskService: svc,
 	}
@@ -104,6 +104,13 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 			response.Fail(
 				c, http.StatusNotFound, "TASK_NOT_FOUND",
 				"no task found with the given ID",
+			)
+			return
+		}
+		if errors.Is(err, repository.ErrTaskNotDeletable) {
+			response.Fail(
+				c, http.StatusNotFound, "ERROR_DELETING_TASK",
+				"error while deleting task with the given ID",
 			)
 			return
 		}

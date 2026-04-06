@@ -1,0 +1,49 @@
+### Create Task
+POST http://localhost:8008/api/v1/tasks/
+Content-Type: application/json
+
+{
+  "type": "email",
+  "payload": {
+    "to": "user@example.com",
+    "subject": "Hello",
+    "body": "This is a test task"
+  }
+}
+
+###
+
+### Create Task - Missing Type (should fail with 400)
+POST http://localhost:8008/api/v1/tasks/
+Content-Type: application/json
+
+{
+  "payload": {
+    "key": "value"
+  }
+}
+
+###
+
+### Get All Tasks
+GET http://localhost:8008/api/v1/tasks/
+
+###
+
+### Get One Task (replace <task-id> with an actual ID)
+GET http://localhost:8008/api/v1/tasks/task_a4805c05415224faa80e0117
+
+###
+
+### Delete Task (replace <task-id> with an actual ID)
+DELETE http://localhost:8008/api/v1/tasks/task_a4805c05415224faa80e0117
+
+###
+
+### Delete Non-Existent Task (should fail with 404)
+DELETE http://localhost:8008/api/v1/tasks/non-existent-id
+
+###
+
+### Get Non-Existent Task (should fail with 404)
+GET http://localhost:8008/api/v1/tasks/non-existent-id

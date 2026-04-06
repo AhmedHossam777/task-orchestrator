@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"time"
-	
+
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/model"
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/repository"
 )
@@ -37,12 +37,12 @@ func (s *taskService) CreateTask(task model.CreateTaskRequest) (
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
-	
+
 	err := s.repo.Create(newTask)
 	if err != nil {
 		return nil, fmt.Errorf("creating task: %w", err)
 	}
-	
+
 	return newTask, nil
 }
 

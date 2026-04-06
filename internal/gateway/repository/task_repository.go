@@ -3,7 +3,7 @@ package repository
 import (
 	"fmt"
 	"sync"
-	
+
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/model"
 )
 
@@ -17,6 +17,7 @@ type TaskRepository interface {
 var (
 	ErrTaskNotFound      = fmt.Errorf("task not found")
 	ErrTaskAlreadyExists = fmt.Errorf("task already exists")
+	ErrTaskNotDeletable  = fmt.Errorf("error deleting task")
 )
 
 type inMemoryTaskRepository struct {
@@ -44,12 +45,12 @@ func (r *inMemoryTaskRepository) Create(task *model.Task) error {
 func (r *inMemoryTaskRepository) GetById(id string) (*model.Task, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	task, exists := r.tasks[id]
 	if !exists {
 		return nil, ErrTaskNotFound
 	}
-	
+
 	return task, nil
 }
 
@@ -60,18 +61,18 @@ func (r *inMemoryTaskRepository) List() ([]*model.Task, error) {
 	for _, task := range r.tasks {
 		tasks = append(tasks, task)
 	}
-	
+
 	return tasks, nil
 }
 
 func (r *inMemoryTaskRepository) Delete(id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	if _, exists := r.tasks[id]; !exists {
 		return ErrTaskNotFound
 	}
-	
+
 	delete(r.tasks, id)
 	return nil
 }
