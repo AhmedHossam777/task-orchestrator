@@ -5,10 +5,10 @@ import "time"
 type TaskStatus string
 
 const (
-	TaskStatusPending   TaskStatus = "Pending"
-	TaskStatusRunning   TaskStatus = "Running"
-	TaskStatusCompleted TaskStatus = "Completed"
-	TaskStatusFailed    TaskStatus = "Failed"
+	TaskStatusPending   TaskStatus = "PENDING"
+	TaskStatusRunning   TaskStatus = "IN_PROGRESS"
+	TaskStatusCompleted TaskStatus = "COMPLETED"
+	TaskStatusFailed    TaskStatus = "FAILED"
 )
 
 type Task struct {

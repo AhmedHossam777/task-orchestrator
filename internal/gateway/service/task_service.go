@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"time"
-
+	
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/model"
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/repository"
 )
@@ -17,10 +17,10 @@ type TaskService interface {
 }
 
 type taskService struct {
-	repo repository.TaskRepository
+	repo *repository.TaskRepository
 }
 
-func NewTaskService(repo repository.TaskRepository) TaskService {
+func NewTaskService(repo *repository.TaskRepository) TaskService {
 	return &taskService{
 		repo,
 	}
@@ -37,12 +37,12 @@ func (s *taskService) CreateTask(task model.CreateTaskRequest) (
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
-
+	
 	err := s.repo.Create(newTask)
 	if err != nil {
 		return nil, fmt.Errorf("creating task: %w", err)
 	}
-
+	
 	return newTask, nil
 }
 
@@ -65,7 +65,7 @@ func (s *taskService) ListTasks() ([]*model.Task, error) {
 func (s *taskService) DeleteTask(id string) error {
 	err := s.repo.Delete(id)
 	if err != nil {
-		return fmt.Errorf("Deleting Task %s: %w", id, err)
+		return fmt.Errorf("deleting Task %s: %w", id, err)
 	}
 	return nil
 }
