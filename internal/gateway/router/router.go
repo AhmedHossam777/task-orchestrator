@@ -10,14 +10,16 @@ func Setup(engine *gin.Engine, taskHandler *handler.TaskHandler) {
 	{
 		tasks := v1.Group("/tasks")
 		{
-			tasks.POST("/", taskHandler.CreateTaskHandler)
-			tasks.GET("/", taskHandler.GetAllTasks)
-			tasks.GET("/:id", taskHandler.GetOneTask)
-			tasks.DELETE("/:id", taskHandler.DeleteTask)
+			tasks.POST("/", taskHandler.Create)
+			tasks.GET("/", taskHandler.List)
+			tasks.GET("/:id", taskHandler.GetByID)
+			tasks.DELETE("/:id", taskHandler.Delete)
 		}
 	}
-
-	engine.GET("/health", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{"status": "ok"})
-	})
+	
+	engine.GET(
+		"/health", func(ctx *gin.Context) {
+			ctx.JSON(200, gin.H{"status": "ok"})
+		},
+	)
 }

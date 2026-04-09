@@ -12,6 +12,7 @@ import (
 	"time"
 	
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/handler"
+	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/middleware"
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/repository"
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/router"
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/service"
@@ -31,6 +32,10 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	
 	engine := gin.New()
+	engine.Use(
+		middleware.RequestID(), middleware.Recovery(), middleware.Logger(),
+		middleware.RateLimiter(20, 10),
+	)
 	
 	router.Setup(engine, taskHandler)
 	

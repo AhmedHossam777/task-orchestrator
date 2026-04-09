@@ -4,21 +4,18 @@ import (
 	"errors"
 	"net/http"
 	"time"
-
-	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/model"
-	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/repository"
-	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/service"
-	"github.com/AhmedHossam777/task-orchestrator/pkg/response"
+	
 	"github.com/gin-gonic/gin"
+	
+	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/model"
+	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/service"
+	"github.com/AhmedHossam777/task-orchestrator/pkg/apperror"
+	"github.com/AhmedHossam777/task-orchestrator/pkg/response"
 )
 
 type CreateTaskRequest struct {
-	Type    string         `json:"type" binding:"required"`
+	Type    string         `json:"type" binding:"required,min=1,max=100"`
 	Payload map[string]any `json:"payload"`
-}
-
-type TaskHandler struct {
-	taskService service.TaskService
 }
 
 type TaskResponse struct {
@@ -33,93 +30,83 @@ type TaskResponse struct {
 	CompletedAt *time.Time     `json:"completed_at,omitempty"`
 }
 
-func NewTaskHandler(svc service.TaskService) *TaskHandler {
-	return &TaskHandler{
-		taskService: svc,
-	}
+type TaskHandler struct {
+	svc service.TaskService
 }
 
-func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
+func NewTaskHandler(svc service.TaskService) *TaskHandler {
+	return &TaskHandler{svc: svc}
+}
+
+func (h *TaskHandler) Create(c *gin.Context) {
 	var req CreateTaskRequest
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Fail(c, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
 		return
 	}
-	task, err := h.taskService.CreateTask(
+	
+	task, err := h.svc.CreateTask(
 		model.CreateTaskRequest{
 			Type:    req.Type,
 			Payload: req.Payload,
 		},
 	)
-
 	if err != nil {
-		response.Fail(
-			c, http.StatusInternalServerError, "CREATE_FAILED", err.Error(),
-		)
+		handleError(c, err)
 		return
 	}
-
+	
 	response.Created(c, toTaskResponse(task))
 }
 
-func (h *TaskHandler) GetAllTasks(c *gin.Context) {
-	tasks, err := h.taskService.ListTasks()
-	if err != nil {
-		response.Fail(c, http.StatusInternalServerError, "LIST_FAILED", err.Error())
-		return
-	}
-
-	tasksResponse := make([]TaskResponse, 0, len(tasks))
-	for _, t := range tasks {
-		tasksResponse = append(tasksResponse, toTaskResponse(t))
-	}
-
-	response.OK(c, tasksResponse)
-}
-
-func (h *TaskHandler) GetOneTask(c *gin.Context) {
+func (h *TaskHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
-	task, err := h.taskService.GetTask(id)
+	
+	task, err := h.svc.GetTask(id)
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
-			response.Fail(
-				c, http.StatusNotFound, "TASK_NOT_FOUND",
-				"no task found with the given ID",
-			)
-			return
-		}
-		response.Fail(c, http.StatusInternalServerError, "GET_FAILED", err.Error())
+		handleError(c, err)
 		return
 	}
-
+	
 	response.OK(c, toTaskResponse(task))
 }
 
-func (h *TaskHandler) DeleteTask(c *gin.Context) {
-	id := c.Param("id")
-	err := h.taskService.DeleteTask(id)
+func (h *TaskHandler) List(c *gin.Context) {
+	tasks, err := h.svc.ListTasks()
 	if err != nil {
-		if errors.Is(err, repository.ErrTaskNotFound) {
-			response.Fail(
-				c, http.StatusNotFound, "TASK_NOT_FOUND",
-				"no task found with the given ID",
-			)
-			return
-		}
-		if errors.Is(err, repository.ErrTaskNotDeletable) {
-			response.Fail(
-				c, http.StatusNotFound, "ERROR_DELETING_TASK",
-				"error while deleting task with the given ID",
-			)
-			return
-		}
-		response.Fail(c, http.StatusInternalServerError, "DELETE_FAILED", err.Error())
+		handleError(c, err)
 		return
 	}
+	
+	taskResponses := make([]TaskResponse, 0, len(tasks))
+	for _, t := range tasks {
+		taskResponses = append(taskResponses, toTaskResponse(t))
+	}
+	
+	response.OK(c, taskResponses)
+}
 
-	response.OK(c, "Task deleted successfully")
+func (h *TaskHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+	
+	if err := h.svc.DeleteTask(id); err != nil {
+		handleError(c, err)
+		return
+	}
+	
+	response.OK(c, gin.H{"message": "task deleted successfully"})
+}
 
+func handleError(c *gin.Context, err error) {
+	if appErr, ok := errors.AsType[*apperror.Apperror](err); ok {
+		response.Fail(c, appErr.Status, appErr.Code, appErr.Message)
+		return
+	}
+	
+	response.Fail(
+		c, http.StatusInternalServerError,
+		"INTERNAL_ERROR", "an unexpected error occurred",
+	)
 }
 
 func toTaskResponse(t *model.Task) TaskResponse {

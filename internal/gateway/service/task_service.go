@@ -2,11 +2,13 @@ package service
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"time"
 	
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/model"
 	"github.com/AhmedHossam777/task-orchestrator/internal/gateway/repository"
+	"github.com/AhmedHossam777/task-orchestrator/pkg/apperror"
 )
 
 type TaskService interface {
@@ -40,7 +42,10 @@ func (s *taskService) CreateTask(task model.CreateTaskRequest) (
 	
 	err := s.repo.Create(newTask)
 	if err != nil {
-		return nil, fmt.Errorf("creating task: %w", err)
+		return nil, apperror.Internal(
+			"CREATE_FAILED",
+			"failed to create task",
+		)
 	}
 	
 	return newTask, nil
@@ -49,7 +54,10 @@ func (s *taskService) CreateTask(task model.CreateTaskRequest) (
 func (s *taskService) GetTask(id string) (*model.Task, error) {
 	task, err := s.repo.GetById(id)
 	if err != nil {
-		return nil, fmt.Errorf("getting task %s: %w", id, err)
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			return nil, apperror.NotFound("TASK_NOT_FOUND", "task not found")
+		}
+		return nil, apperror.NotFound("GET_FAILED", "failed to retrieve task")
 	}
 	return task, nil
 }
@@ -57,16 +65,44 @@ func (s *taskService) GetTask(id string) (*model.Task, error) {
 func (s *taskService) ListTasks() ([]*model.Task, error) {
 	tasks, err := s.repo.List()
 	if err != nil {
-		return nil, fmt.Errorf("listing tasks: %w", err)
+		return nil, apperror.Internal(
+			"LIST_FAILED",
+			"failed to list tasks",
+		)
 	}
 	return tasks, nil
 }
 
 func (s *taskService) DeleteTask(id string) error {
-	err := s.repo.Delete(id)
+	task, err := s.repo.GetById(id)
 	if err != nil {
-		return fmt.Errorf("deleting Task %s: %w", id, err)
+		if errors.Is(err, repository.ErrTaskNotFound) {
+			return apperror.NotFound(
+				"TASK_NOT_FOUND",
+				"no task found with the given ID",
+			)
+		}
+		return apperror.Internal(
+			"DELETE_FAILED",
+			"failed to retrieve task for deletion",
+		)
 	}
+	
+	// only PENDING tasks can be deleted
+	if task.Status != model.TaskStatusPending {
+		return apperror.Conflict(
+			"TASK_NOT_DELETABLE",
+			"only tasks with PENDING status can be deleted",
+		)
+	}
+	
+	if err := s.repo.Delete(task.ID); err != nil {
+		return apperror.Internal(
+			"DELETE_FAILED",
+			"failed to delete task",
+		)
+	}
+	
 	return nil
 }
 
