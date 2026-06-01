@@ -12,8 +12,10 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
 
-      - name: list files
-        run: ls -ltra
+      - name: set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
 
-      - name: run shell comman
-        run: echo "aldod and zuz"
+      - name: run CI script
+        run: ./scripts/ci.sh
