@@ -1,0 +1,6 @@
+.git
+.idea
+.env
+*.md
+http
+bin

@@ -72,9 +72,10 @@ func main() {
 }
 
 func initDB() *pgxpool.Pool {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("error loading the env variables: %w", err)
+	// .env is optional: in containers DATABASE_URL is provided via the
+	// environment directly, so a missing file is not fatal.
+	if err := godotenv.Load(); err != nil {
+		log.Printf("no .env file loaded (%v), relying on environment variables", err)
 	}
 	dsn := os.Getenv("DATABASE_URL")
 	fmt.Println("dsn: ", dsn)
